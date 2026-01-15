@@ -25,4 +25,4 @@ AI 기반 의료기기 소프트웨어(SaMD)의 품질 관리 시스템(QMS)을 
 - **ISO 14971**: 의료기기 위험 관리
 
 ## 👤 Author
-- **박현배 (Park, Hyunbae)** - AI-based SaMD Lifecycle Expert (Development, RA, Commercialization)
+- 박현배 (Park, Hyunbae) - AI-based SaMD Lifecycle Expert (Development, RA, Commercialization)
