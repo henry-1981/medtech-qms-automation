@@ -20,3 +20,6 @@ Thumbs.db
 
 # Build artifacts
 /release/
+
+# Third-party samples/tools
+/.opencode/
