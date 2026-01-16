@@ -161,41 +161,6 @@ function registerScheduledTasks(): void {
   });
 }
 
-async function initializeDrive(): Promise<void> {
-  if (isDriveConnecting) {
-    throw new DriveConnectionError("Already authenticating");
-  }
-
-  isDriveConnecting = true;
-  try {
-    logger.info("Initializing Google Drive Auth...");
-    const authService = new AuthService();
-    const authClient = await authService.getAuthenticatedClient();
-    driveService = new DriveService(authClient);
-    sheetsService = new SheetsService(authClient);
-    logger.info("Google Drive Authenticated!");
-
-    if (mainWindow) {
-      mainWindow.webContents.send("drive-status", { connected: true });
-    }
-  } catch (error) {
-    const message =
-      error instanceof DriveConnectionError
-        ? error.message
-        : formatError(error);
-    logger.error({ error }, "Drive Auth Failed");
-    if (mainWindow) {
-      mainWindow.webContents.send("drive-status", {
-        connected: false,
-        error: message,
-      });
-    }
-    throw error;
-  } finally {
-    isDriveConnecting = false;
-  }
-}
-
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -555,12 +520,40 @@ function registerIpcHandlers(): void {
       return { success: false, error: "ACCESS_DENIED", correlationId };
     }
 
+    if (!authService) {
+      return { success: false, error: "AuthService not configured (missing client credentials)", correlationId };
+    }
+
     try {
-      await initializeDrive();
+      if (isDriveConnecting) {
+        throw new DriveConnectionError("Already authenticating");
+      }
+      isDriveConnecting = true;
+
+      requestLogger.info("Initializing Google Drive Auth...");
+      const authClient = await authService.getAuthenticatedClient();
+      driveService = new DriveService(authClient);
+      sheetsService = new SheetsService(authClient);
+      requestLogger.info("Google Drive Authenticated!");
+
+      if (mainWindow) {
+        mainWindow.webContents.send("drive-status", { connected: true });
+      }
+
       return { success: true, correlationId };
     } catch (error) {
+      const message = error instanceof DriveConnectionError ? error.message : formatError(error);
       requestLogger.error({ error }, "connect-drive failed");
-      return { success: false, error: formatError(error), correlationId };
+      
+      if (mainWindow) {
+        mainWindow.webContents.send("drive-status", {
+          connected: false,
+          error: message,
+        });
+      }
+      return { success: false, error: message, correlationId };
+    } finally {
+      isDriveConnecting = false;
     }
   });
 
