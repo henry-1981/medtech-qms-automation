@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const envSchema = z.object({
-  GOOGLE_API_KEY: z.string().min(1, "GOOGLE_API_KEY is required"),
+  GOOGLE_API_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z
@@ -64,12 +64,23 @@ export function getEnv(): Env {
     const missingVars = result.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
-    console.error("Environment validation failed:\n" + missingVars);
 
     const isProduction = process.env.NODE_ENV === "production";
     const strictMode = process.env.STRICT_ENV_VALIDATION === "true";
+
     if (isProduction || strictMode) {
-      throw new Error("Environment validation failed in production mode");
+      console.error("Environment validation failed:\n" + missingVars);
+      throw new Error("Environment validation failed in production/strict mode");
+    }
+
+    if (process.env.GOOGLE_API_KEY === undefined) {
+      console.warn("WARN: GOOGLE_API_KEY is missing. AI features will be disabled.");
+    }
+    if (
+      process.env.GOOGLE_CLIENT_ID === undefined ||
+      process.env.GOOGLE_CLIENT_SECRET === undefined
+    ) {
+      console.warn("WARN: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing. Drive/Sheets features will be disabled.");
     }
 
     return {

@@ -26,3 +26,39 @@ AI 기반 의료기기 소프트웨어(SaMD)의 품질 관리 시스템(QMS)을 
 
 ## 👤 Author
 - 박현배 (Park, Hyunbae) - AI-based SaMD Lifecycle Expert (Development, RA, Commercialization)
+
+---
+
+## 💻 실행 및 빌드 가이드
+
+### 1. 환경 설정
+
+1.  프로젝트 루트에 `.env` 파일 생성: `cp .env.example .env`
+2.  `docs/GOOGLE_CLOUD_SETUP.md`를 참조하여 `.env`에 필수 Google API 키 및 클라이언트 정보를 입력합니다.
+    *   **주의**: AI 기능이나 Drive/Sheets 연동 기능 없이도 앱은 실행되지만, `.env`에 유효한 정보가 없으면 해당 기능은 **비활성화(Degraded Mode)**됩니다.
+
+### 2. 개발 모드 실행
+
+Node.js 및 Electron 환경이 설정된 경우:
+```bash
+npm install
+npm start
+```
+*   `npm start`는 TypeScript 빌드 후 Electron 앱을 실행합니다.
+
+### 3. 배포용 빌드 (Windows)
+
+Windows용 실행 파일(`.exe`)을 생성하려면:
+```bash
+npm install
+npm run dist
+```
+*   생성된 실행 파일은 `/release` 폴더에서 찾을 수 있습니다.
+
+### 4. 코드 검증
+
+타입 체크 및 유닛 테스트를 실행합니다:
+```bash
+npm run lint
+npm run test
+```

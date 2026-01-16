@@ -11,7 +11,8 @@
     "start": "npm run build && electron dist/main/main.js",
     "dev": "tsc -w & electron .",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dist": "npm run build && electron-builder --win --x64"
   },
   "keywords": [
     "qms",
@@ -23,12 +24,45 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "build": {
+    "appId": "com.medtech.qms.automation",
+    "productName": "MedTech QMS Automation",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "index.html"
+    ],
+    "extraFiles": [
+      {
+        "from": "docs",
+        "to": "docs",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "category": "public.app-category.productivity"
+    }
+  },
   "devDependencies": {
     "@types/node": "^25.0.7",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "electron": "^39.2.7",
+    "electron-builder": "^25.0.0",
     "esbuild": "^0.27.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",

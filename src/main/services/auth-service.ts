@@ -28,9 +28,58 @@ const tokenSchema = z.object({
 
 export class AuthService {
   private oauth2Client: OAuth2Client;
+  public readonly isConfigured: boolean;
 
   constructor() {
     const env = getEnv();
+
+    this.isConfigured = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
+    this.oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CLIENT_ID || "dummy-id",
+      env.GOOGLE_CLIENT_SECRET || "dummy-secret",
+      env.GOOGLE_REDIRECT_URI
+    );
+
+    if (this.isConfigured) {
+        this.oauth2Client.on("tokens", (tokens) => {
+          if (tokens.refresh_token || tokens.access_token) {
+            try {
+              const existing = fs.existsSync(TOKEN_PATH)
+                ? JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"))
+                : {};
+              const merged = { ...existing, ...tokens };
+              fs.writeFileSync(TOKEN_PATH, JSON.stringify(merged), { mode: 0o600 });
+              logger.info("OAuth token refreshed and saved");
+            } catch (e) {
+              logger.error({ error: e }, "Failed to persist OAuth token refresh");
+            }
+          }
+        });
+    }
+  }
+
+  async getAuthenticatedClient(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured. Missing client credentials.");
+    }
+    // ... (기존 로직)
+  }
+
+  private async authorizeNewUser(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured.");
+    }
+    // ... (기존 로직)
+  }
+
+  async revokeToken(): Promise<void> {
+    if (!this.isConfigured) return;
+    // ... (기존 로직)
+  }
+}
+
+    this.isConfigured = true;
     this.oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CLIENT_ID,
       env.GOOGLE_CLIENT_SECRET,
@@ -54,6 +103,9 @@ export class AuthService {
   }
 
   async getAuthenticatedClient(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured. Missing client credentials.");
+    }
     if (fs.existsSync(TOKEN_PATH)) {
       try {
         const rawToken = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
@@ -75,6 +127,9 @@ export class AuthService {
   }
 
   private async authorizeNewUser(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured.");
+    }
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         server.close();
@@ -138,9 +193,62 @@ export class AuthService {
   }
 
   async revokeToken(): Promise<void> {
+    if (!this.isConfigured) return;
     if (fs.existsSync(TOKEN_PATH)) {
       fs.unlinkSync(TOKEN_PATH);
       logger.info("OAuth token revoked");
     }
+  }
+}
+
+    this.isConfigured = true;
+    this.oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_REDIRECT_URI
+    );
+      return;
+    }
+
+    this.isConfigured = true;
+    this.oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CLIENT_ID,
+      env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_REDIRECT_URI
+    );
+
+    this.oauth2Client.on("tokens", (tokens) => {
+      if (tokens.refresh_token || tokens.access_token) {
+        try {
+          const existing = fs.existsSync(TOKEN_PATH)
+            ? JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"))
+            : {};
+          const merged = { ...existing, ...tokens };
+          fs.writeFileSync(TOKEN_PATH, JSON.stringify(merged), { mode: 0o600 });
+          logger.info("OAuth token refreshed and saved");
+        } catch (e) {
+          logger.error({ error: e }, "Failed to persist OAuth token refresh");
+        }
+      }
+    });
+  }
+
+  async getAuthenticatedClient(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured. Missing client credentials.");
+    }
+    // ... (기존 로직: tokenSchema, fs.existsSync 등)
+  }
+
+  private async authorizeNewUser(): Promise<OAuth2Client> {
+    if (!this.isConfigured) {
+      throw new DriveConnectionError("AuthService is not configured.");
+    }
+    // ... (기존 로직)
+  }
+
+  async revokeToken(): Promise<void> {
+    if (!this.isConfigured) return;
+    // ... (기존 로직)
   }
 }

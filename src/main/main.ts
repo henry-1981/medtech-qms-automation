@@ -49,6 +49,7 @@ import {
 const logger = createChildLogger("Main");
 
 let mainWindow: BrowserWindow | null = null;
+let authService: AuthService | null = null;
 let driveService: DriveService | null = null;
 let sheetsService: SheetsService | null = null;
 let sopAgent: SopAgent | null = null;
@@ -77,32 +78,46 @@ async function initializeServices(): Promise<void> {
     }
   });
 
-  getEnv();
+  const env = getEnv();
   seedDefaultAdmin();
 
-  vectorStore = new SopVectorStore();
-  await vectorStore.initialize();
+  const hasApiKey = !!env.GOOGLE_API_KEY;
+  const hasClientSecrets = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
-  documentParser = new DocumentParser();
-  documentChunker = new DocumentChunker({
-    chunkSize: 800,
-    chunkOverlap: 150,
-    preserveSections: true,
-  });
+  if (hasApiKey) {
+    logger.info("Initializing AI/RAG features...");
+    vectorStore = new SopVectorStore();
+    await vectorStore.initialize();
 
-  sopAgent = new SopAgent();
-  sopAgent.setVectorStore(vectorStore);
+    documentParser = new DocumentParser();
+    documentChunker = new DocumentChunker({
+      chunkSize: 800,
+      chunkOverlap: 150,
+      preserveSections: true,
+    });
 
-  orchestrator = new DesignChangeOrchestrator();
-  orchestrator.setVectorStore(vectorStore);
+    sopAgent = new SopAgent();
+    sopAgent.setVectorStore(vectorStore);
 
-  docxGenerator = new DocxGenerator();
+    orchestrator = new DesignChangeOrchestrator();
+    orchestrator.setVectorStore(vectorStore);
+
+    docxGenerator = new DocxGenerator();
+    modelService = new ModelService();
+  } else {
+    logger.warn("AI features (LLM, RAG, DocxGen) are disabled due to missing GOOGLE_API_KEY.");
+  }
+
+  if (hasClientSecrets) {
+    logger.info("AuthService configured.");
+    authService = new AuthService();
+  } else {
+    logger.warn("Drive/Sheets features are disabled due to missing Google Client Credentials.");
+  }
 
   scheduler = new TaskScheduler();
   registerScheduledTasks();
   scheduler.start();
-
-  modelService = new ModelService();
 
   isInitialized = true;
   logger.info("Services initialized");
