@@ -55,6 +55,10 @@ const api = {
   signWorkflow: (token: string, requestId: string, meaning: string) =>
     ipcRenderer.invoke("sign-workflow", token, requestId, meaning),
 
+  listAvailableModels: () => ipcRenderer.invoke("list-available-models"),
+
+  getCurrentModels: () => ipcRenderer.invoke("get-current-models"),
+
   onDriveStatus: (
     callback: (status: { connected: boolean; error?: string }) => void
   ) => {

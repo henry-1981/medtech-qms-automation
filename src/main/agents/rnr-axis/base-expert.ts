@@ -1,7 +1,7 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SopVectorStore } from "../../doc-engine";
-import { createChildLogger, parseJsonSafely } from "../../common";
+import { createChildLogger, parseJsonSafely, getEnv } from "../../common";
 import { z } from "zod";
 
 const logger = createChildLogger("BaseExpert");
@@ -23,9 +23,10 @@ export abstract class BaseExpert {
   protected abstract readonly systemPromptBase: string;
 
   constructor() {
+    const env = getEnv();
     this.model = new ChatGoogleGenerativeAI({
-      model: "gemini-1.5-pro",
-      temperature: 0.1,
+      model: env.GEMINI_MODEL,
+      temperature: env.GEMINI_TEMPERATURE,
     });
   }
 

@@ -2,7 +2,7 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { Document } from "@langchain/core/documents";
 import { DocumentChunk } from "./chunker";
-import { VectorStoreError, createChildLogger } from "../common";
+import { VectorStoreError, createChildLogger, getEnv } from "../common";
 
 const logger = createChildLogger("VectorStore");
 
@@ -30,8 +30,9 @@ export class SopVectorStore {
   private chunkMeta: StoredChunkMeta[] = [];
 
   constructor() {
+    const env = getEnv();
     this.embeddings = new GoogleGenerativeAIEmbeddings({
-      model: "embedding-001",
+      model: env.GEMINI_EMBEDDING_MODEL,
     });
   }
 

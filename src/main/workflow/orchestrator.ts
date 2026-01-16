@@ -3,7 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { RaExpertV2, QaExpert, DevExpert, ExpertResponse } from "../agents/rnr-axis";
 import { SopVectorStore } from "../doc-engine";
-import { createChildLogger, parseJsonSafely } from "../common";
+import { createChildLogger, parseJsonSafely, getEnv } from "../common";
 import {
   WorkflowState,
   createInitialState,
@@ -37,12 +37,13 @@ export class DesignChangeOrchestrator {
   private vectorStore: SopVectorStore | null = null;
 
   constructor() {
+    const env = getEnv();
     this.raExpert = new RaExpertV2();
     this.qaExpert = new QaExpert();
     this.devExpert = new DevExpert();
     this.synthesizer = new ChatGoogleGenerativeAI({
-      model: "gemini-1.5-pro",
-      temperature: 0.2,
+      model: env.GEMINI_MODEL,
+      temperature: env.GEMINI_TEMPERATURE,
     });
   }
 

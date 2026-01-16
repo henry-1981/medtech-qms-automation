@@ -23,6 +23,8 @@ declare global {
       listSecurityEvents: (token: string) => Promise<any>;
       getWorkflowLogs: (token: string, requestId: string) => Promise<any>;
       changePassword: (token: string, currentPassword: string, newPassword: string) => Promise<any>;
+      listAvailableModels: () => Promise<any>;
+      getCurrentModels: () => Promise<any>;
       onDriveStatus: (
         callback: (status: { connected: boolean; error?: string }) => void
       ) => () => void;
@@ -86,6 +88,18 @@ interface SecurityEvent {
   username?: string;
   detail?: string;
   createdAt: string;
+}
+
+interface GeminiModel {
+  name: string;
+  displayName: string;
+  description: string;
+}
+
+interface ModelConfig {
+  chatModel: string;
+  embeddingModel: string;
+  temperature: number;
 }
 
 const App = () => {
@@ -152,6 +166,11 @@ const App = () => {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
 
+  const [availableChatModels, setAvailableChatModels] = useState<GeminiModel[]>([]);
+  const [availableEmbeddingModels, setAvailableEmbeddingModels] = useState<GeminiModel[]>([]);
+  const [currentModelConfig, setCurrentModelConfig] = useState<ModelConfig | null>(null);
+  const [loadingModels, setLoadingModels] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem("qmsToken");
     if (stored) {
@@ -188,6 +207,7 @@ const App = () => {
     });
 
     refreshRagStatus();
+    refreshModelInfo();
 
     return () => {
       cleanupDrive();
@@ -305,6 +325,22 @@ const App = () => {
   const refreshRagStatus = async () => {
     const status = await window.qmsApi.getRagStatus();
     setRagStatus(status);
+  };
+
+  const refreshModelInfo = async () => {
+    setLoadingModels(true);
+    try {
+      const [models, config] = await Promise.all([
+        window.qmsApi.listAvailableModels(),
+        window.qmsApi.getCurrentModels(),
+      ]);
+      setAvailableChatModels(models.chatModels || []);
+      setAvailableEmbeddingModels(models.embeddingModels || []);
+      setCurrentModelConfig(config);
+    } catch (e) {
+      console.error("Failed to load model info", e);
+    }
+    setLoadingModels(false);
   };
 
   const handleConnect = async () => {
@@ -1010,6 +1046,91 @@ const App = () => {
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "15px",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>AI Model</h3>
+            <button
+              onClick={refreshModelInfo}
+              disabled={loadingModels}
+              style={{
+                ...buttonStyle,
+                background: "#6c5ce7",
+                color: "white",
+                fontSize: "12px",
+                padding: "6px 12px",
+              }}
+            >
+              {loadingModels ? "..." : "Refresh"}
+            </button>
+          </div>
+
+          {currentModelConfig && (
+            <div style={{ fontSize: "13px", marginBottom: "15px" }}>
+              <div style={{ marginBottom: "8px" }}>
+                <strong>Chat Model:</strong>{" "}
+                <span style={{ color: "#6c5ce7" }}>{currentModelConfig.chatModel}</span>
+              </div>
+              <div style={{ marginBottom: "8px" }}>
+                <strong>Embedding:</strong>{" "}
+                <span style={{ color: "#6c5ce7" }}>{currentModelConfig.embeddingModel}</span>
+              </div>
+              <div>
+                <strong>Temperature:</strong>{" "}
+                <span style={{ color: "#6c5ce7" }}>{currentModelConfig.temperature}</span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ fontSize: "12px", color: "#666" }}>
+            <details>
+              <summary style={{ cursor: "pointer", marginBottom: "8px" }}>
+                Available Chat Models ({availableChatModels.length})
+              </summary>
+              <div style={{ maxHeight: "150px", overflowY: "auto", paddingLeft: "10px" }}>
+                {availableChatModels.map((m) => (
+                  <div key={m.name} style={{ marginBottom: "4px" }}>
+                    {m.name}
+                  </div>
+                ))}
+              </div>
+            </details>
+            <details>
+              <summary style={{ cursor: "pointer", marginBottom: "8px" }}>
+                Available Embedding Models ({availableEmbeddingModels.length})
+              </summary>
+              <div style={{ maxHeight: "150px", overflowY: "auto", paddingLeft: "10px" }}>
+                {availableEmbeddingModels.map((m) => (
+                  <div key={m.name} style={{ marginBottom: "4px" }}>
+                    {m.name}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+
+          <div
+            style={{
+              marginTop: "15px",
+              padding: "10px",
+              background: "#fff3cd",
+              borderRadius: "4px",
+              fontSize: "12px",
+              color: "#856404",
+            }}
+          >
+            Model settings can be changed in <code>.env</code> file.
+            <br />
+            **App restart is required to apply changes.**
           </div>
         </div>
       </div>

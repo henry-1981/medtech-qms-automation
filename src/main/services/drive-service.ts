@@ -16,17 +16,23 @@ export class DriveService {
     this.drive = google.drive({ version: "v3", auth: authClient });
   }
 
-  async findFolderId(folderName: string): Promise<string | null> {
+  async findFolderId(folderName: string, parentId?: string | null): Promise<string | null> {
     const escapedName = escapeQueryString(folderName);
+    let query = `mimeType = 'application/vnd.google-apps.folder' and name = '${escapedName}' and trashed = false`;
+
+    if (parentId) {
+      const escapedParentId = escapeQueryString(parentId);
+      query += ` and '${escapedParentId}' in parents`;
+    }
 
     try {
       const res = await this.drive.files.list({
-        q: `mimeType = 'application/vnd.google-apps.folder' and name = '${escapedName}' and trashed = false`,
+        q: query,
         fields: "files(id, name)",
       });
       return res.data.files?.[0]?.id || null;
     } catch (e) {
-      logger.error({ error: e, folderName }, "Failed to find folder");
+      logger.error({ error: e, folderName, parentId }, "Failed to find folder");
       throw new DriveQueryError(`Failed to find folder: ${folderName}`, e);
     }
   }

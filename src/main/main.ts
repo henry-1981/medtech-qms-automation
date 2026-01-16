@@ -8,6 +8,7 @@ import { AuthService } from "./services/auth-service";
 import { DriveService } from "./services/drive-service";
 import { SheetsService } from "./services/sheets-service";
 import { TaskScheduler } from "./services/scheduler";
+import { ModelService } from "./services/model-service";
 import { mapReleaseRow, mapVvRow, releaseRowSchema, vvRowSchema } from "./services/sheets-mapper";
 import { DocumentParser, DocumentChunker, SopVectorStore } from "./doc-engine";
 import { DesignChangeOrchestrator } from "./workflow";
@@ -57,6 +58,7 @@ let documentChunker: DocumentChunker | null = null;
 let orchestrator: DesignChangeOrchestrator | null = null;
 let docxGenerator: DocxGenerator | null = null;
 let scheduler: TaskScheduler | null = null;
+let modelService: ModelService | null = null;
 let isInitialized = false;
 let isDriveConnecting = false;
 
@@ -99,6 +101,8 @@ async function initializeServices(): Promise<void> {
   scheduler = new TaskScheduler();
   registerScheduledTasks();
   scheduler.start();
+
+  modelService = new ModelService();
 
   isInitialized = true;
   logger.info("Services initialized");
@@ -550,16 +554,20 @@ function registerIpcHandlers(): void {
       return { files: listCachedFiles(), offline: true };
     }
 
+    const env = getEnv();
+    const rootFolderName = env.DRIVE_QMS_ROOT_FOLDER;
+    const sopFolderName = env.DRIVE_SOP_FOLDER;
+
     try {
-      const rootId = await driveService.findFolderId("QMS_ROOT");
+      const rootId = await driveService.findFolderId(rootFolderName);
       if (!rootId) {
-        return { error: "QMS_ROOT folder not found" };
+        return { error: `${rootFolderName} folder not found` };
       }
 
-      const sopFolderId = await driveService.findFolderId("01_SOPs");
+      const sopFolderId = await driveService.findFolderId(sopFolderName, rootId);
       if (!sopFolderId) {
         const files = await driveService.listFiles(rootId);
-        return { files, note: "Showing Root files (SOP folder not found)" };
+        return { files, note: `Showing Root files (${sopFolderName} folder not found)` };
       }
 
       const files = await driveService.listFiles(sopFolderId);
@@ -699,6 +707,27 @@ function registerIpcHandlers(): void {
       }
     }
   );
+
+  ipcMain.handle("list-available-models", async () => {
+    if (!modelService) {
+      return { chatModels: [], embeddingModels: [] };
+    }
+    try {
+      return await modelService.listAvailableModels();
+    } catch (error) {
+      logger.error({ error }, "list-available-models failed");
+      return { chatModels: [], embeddingModels: [] };
+    }
+  });
+
+  ipcMain.handle("get-current-models", async () => {
+    const env = getEnv();
+    return {
+      chatModel: env.GEMINI_MODEL,
+      embeddingModel: env.GEMINI_EMBEDDING_MODEL,
+      temperature: env.GEMINI_TEMPERATURE,
+    };
+  });
 }
 
 app.whenReady().then(async () => {

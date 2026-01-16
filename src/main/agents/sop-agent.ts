@@ -20,9 +20,10 @@ export class SopAgent {
   private vectorStore: SopVectorStore | null = null;
 
   constructor() {
+    const env = getEnv();
     this.model = new ChatGoogleGenerativeAI({
-      model: "gemini-1.5-pro",
-      temperature: 0.2,
+      model: env.GEMINI_MODEL,
+      temperature: env.GEMINI_TEMPERATURE,
     });
   }
 

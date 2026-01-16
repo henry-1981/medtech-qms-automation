@@ -11,6 +11,22 @@ const envSchema = z.object({
     .string()
     .url()
     .default("http://localhost:3000/oauth2callback"),
+  DRIVE_QMS_ROOT_FOLDER: z.string().default("QMS_ROOT"),
+  DRIVE_SOP_FOLDER: z.string().default("01_SOPs"),
+  GEMINI_MODEL: z.string().default("gemini-1.5-pro"),
+  GEMINI_EMBEDDING_MODEL: z.string().default("embedding-001"),
+  GEMINI_TEMPERATURE: z
+    .preprocess(
+      (value) => {
+        const float = parseFloat(value as string);
+        return isNaN(float) ? undefined : float;
+      },
+      z
+        .number()
+        .min(0, { message: "GEMINI_TEMPERATURE must be non-negative" })
+        .max(2, { message: "GEMINI_TEMPERATURE must be at most 2" })
+        .default(0.2)
+    ),
   QMS_SHEET_ID: z.string().optional(),
   QMS_SHEET_RELEASE_TAB: z.string().optional(),
   QMS_SHEET_VV_TAB: z.string().optional(),
@@ -63,6 +79,11 @@ export function getEnv(): Env {
       GOOGLE_REDIRECT_URI:
         process.env.GOOGLE_REDIRECT_URI ||
         "http://localhost:3000/oauth2callback",
+      DRIVE_QMS_ROOT_FOLDER: process.env.DRIVE_QMS_ROOT_FOLDER || "QMS_ROOT",
+      DRIVE_SOP_FOLDER: process.env.DRIVE_SOP_FOLDER || "01_SOPs",
+      GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-1.5-pro",
+      GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL || "embedding-001",
+      GEMINI_TEMPERATURE: Number(process.env.GEMINI_TEMPERATURE) || 0.2,
       LOG_LEVEL: "info",
       LLM_TIMEOUT_MS: 30000,
       NODE_ENV: "development",
